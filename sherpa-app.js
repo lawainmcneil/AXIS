@@ -76,6 +76,12 @@ const output = {
   psScore: document.querySelector("#psScore"),
   ocScore: document.querySelector("#ocScore"),
   risaMarker: document.querySelector("#risaMarker"),
+  risaQuadrants: {
+    "Income Protection": document.querySelector("#risaIncomeProtection"),
+    "Time Segmentation": document.querySelector("#risaTimeSegmentation"),
+    "Total Return": document.querySelector("#risaTotalReturn"),
+    "Risk Wrap": document.querySelector("#risaRiskWrap")
+  },
   risaProducts: document.querySelector("#risaProducts"),
   risaStress: document.querySelector("#risaStress"),
   periodReturnGrid: document.querySelector("#periodReturnGrid"),
@@ -359,8 +365,11 @@ const renderRisaMatrix = (plan) => {
   if (!output.risaMarker) return;
   const left = clamp(50 + plan.risaScores.ps * 12, 14, 86);
   const top = clamp(50 - plan.risaScores.oc * 12, 14, 86);
+  Object.values(output.risaQuadrants).forEach((quadrant) => quadrant?.classList.remove("is-active"));
+  output.risaQuadrants[plan.risaStyle]?.classList.add("is-active");
   output.risaMarker.style.left = `${left}%`;
   output.risaMarker.style.top = `${top}%`;
+  output.risaMarker.textContent = plan.risaStyle;
 };
 
 const renderRiskReturnChart = () => {
