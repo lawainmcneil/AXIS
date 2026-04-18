@@ -60,11 +60,7 @@ const output = {
   worstYear: document.querySelector("#worstYear"),
   rangeSpread: document.querySelector("#rangeSpread"),
   rangeBar: document.querySelector("#rangeBar"),
-  glideStage: document.querySelector("#glideStage"),
-  glideNarrative: document.querySelector("#glideNarrative"),
-  yearsToRetirement: document.querySelector("#yearsToRetirement"),
-  glideEquity: document.querySelector("#glideEquity"),
-  axisEquity: document.querySelector("#axisEquity"),
+  planningModelNote: document.querySelector("#planningModelNote"),
   bucketOne: document.querySelector("#bucketOne"),
   bucketTwo: document.querySelector("#bucketTwo"),
   bucketThree: document.querySelector("#bucketThree"),
@@ -79,6 +75,7 @@ const output = {
   risaAxis: document.querySelector("#risaAxis"),
   psScore: document.querySelector("#psScore"),
   ocScore: document.querySelector("#ocScore"),
+  risaMarker: document.querySelector("#risaMarker"),
   risaProducts: document.querySelector("#risaProducts"),
   risaStress: document.querySelector("#risaStress"),
   periodReturnGrid: document.querySelector("#periodReturnGrid"),
@@ -93,11 +90,9 @@ const output = {
 let projectionChart;
 let allocationChart;
 let backtestChart;
-let risaChart;
 let riskReturnChart;
 let stressChart;
 let cashFlowChart;
-let glideChart;
 
 const numberValue = (input, fallback = 0) => {
   if (!input) return fallback;
@@ -191,6 +186,18 @@ const getRisaScores = () => {
   const ps = clamp((Number(fields.marketComfort.value) + Number(fields.downturnBehavior.value)) / 2, -3, 3);
   const oc = clamp(Number(fields.incomePreference.value), -3, 3);
   return { ps, oc };
+};
+
+const getSuggestedPortfolioName = () => {
+  const risaStyle = getRisaStyle();
+  return SHERPA_DFA_DATA.risaMap[risaStyle].portfolio;
+};
+
+const syncPlanningModelToRisa = () => {
+  const suggestedPortfolio = getSuggestedPortfolioName();
+  if (fields.portfolioSelect && portfolioByName(suggestedPortfolio)) {
+    fields.portfolioSelect.value = suggestedPortfolio;
+  }
 };
 
 const getPlan = () => {
@@ -296,24 +303,6 @@ const getStressReturn = (portfolio, years) => {
   return portfolio.lowOneYear;
 };
 
-const getGlidePath = (yearsToRetirement) => {
-  return SHERPA_DFA_DATA.glidePaths.find((path) => yearsToRetirement >= path.minYearsToRetirement) || SHERPA_DFA_DATA.glidePaths[SHERPA_DFA_DATA.glidePaths.length - 1];
-};
-
-const modelToBroadAllocation = (portfolio) => {
-  const allocation = { usStocks: 0, internationalStocks: 0, usBonds: 0, internationalBonds: 0, tips: 0 };
-  portfolio.allocations.forEach(([name, weight]) => {
-    if (name.includes("US Total") || name.includes("US Small")) allocation.usStocks += weight;
-    else if (name.includes("International") || name.includes("Global ex-US")) allocation.internationalStocks += weight;
-    else if (name.includes("Global Bonds")) allocation.internationalBonds += weight;
-    else if (name.includes("TIPS")) allocation.tips += weight;
-    else if (name.includes("Bonds") || name.includes("Credit")) allocation.usBonds += weight;
-  });
-  return allocation;
-};
-
-const allocationEquity = (allocation) => allocation.usStocks + allocation.internationalStocks;
-
 const getActions = (plan, projection, success) => {
   const actions = [];
   const firstRmdAge = 73;
@@ -366,26 +355,12 @@ const renderAllocationChart = (portfolio) => {
   });
 };
 
-const renderRisaChart = (plan) => {
-  const ctx = document.querySelector("#risaChart");
-  if (!ctx) return;
-  if (risaChart) risaChart.destroy();
-  risaChart = new Chart(ctx, {
-    type: "scatter",
-    data: {
-      datasets: [
-        { label: plan.risaStyle, data: [{ x: plan.risaScores.oc, y: plan.risaScores.ps }], pointRadius: 8, pointBackgroundColor: "#C99A2E" }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { min: -3, max: 3, title: { display: true, text: "Commitment ← → Optionality" }, grid: { color: (ctx) => ctx.tick.value === 0 ? "#17201F" : "rgba(23,32,31,.08)" } },
-        y: { min: -3, max: 3, title: { display: true, text: "Safety-First ← → Probability-Based" }, grid: { color: (ctx) => ctx.tick.value === 0 ? "#17201F" : "rgba(23,32,31,.08)" } }
-      }
-    }
-  });
+const renderRisaMatrix = (plan) => {
+  if (!output.risaMarker) return;
+  const left = clamp(50 + plan.risaScores.ps * 12, 14, 86);
+  const top = clamp(50 - plan.risaScores.oc * 12, 14, 86);
+  output.risaMarker.style.left = `${left}%`;
+  output.risaMarker.style.top = `${top}%`;
 };
 
 const renderRiskReturnChart = () => {
@@ -443,30 +418,6 @@ const renderCashFlowChart = (rows) => {
   });
 };
 
-const renderGlideChart = (plan, glidePath) => {
-  const ctx = document.querySelector("#glideChart");
-  if (!ctx) return;
-  if (glideChart) glideChart.destroy();
-  const modelAllocation = modelToBroadAllocation(plan.portfolio);
-  const labels = ["US Stocks", "International Stocks", "US Bonds", "International Bonds", "TIPS"];
-  const keys = ["usStocks", "internationalStocks", "usBonds", "internationalBonds", "tips"];
-  glideChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [
-        { label: "Selected Axis model", data: keys.map((key) => modelAllocation[key]), backgroundColor: "#1F5F4A" },
-        { label: "TDF glide path", data: keys.map((key) => glidePath.allocation[key]), backgroundColor: "#C99A2E" }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { position: "bottom" } },
-      scales: { y: { ticks: { callback: (value) => `${value}%` } } }
-    }
-  });
-};
-
 const renderBacktestChart = () => {
   const ctx = document.querySelector("#backtestChart");
   if (backtestChart) backtestChart.destroy();
@@ -513,11 +464,6 @@ const update = () => {
   const stressYears = Number(fields.stressPeriod.value || 1);
   const stressReturn = getStressReturn(plan.portfolio, stressYears);
   const yearsToRetirement = plan.retirementAge - plan.age;
-  const glidePath = getGlidePath(yearsToRetirement);
-  const axisModelAllocation = modelToBroadAllocation(plan.portfolio);
-  const glideEquity = allocationEquity(glidePath.allocation);
-  const axisEquity = allocationEquity(axisModelAllocation);
-  const equityGap = axisEquity - glideEquity;
   const requiredFields = [fields.clientName, fields.age, fields.retirementAge, fields.monthlyLifestyle, fields.socialSecurity, fields.cash, fields.taxable, fields.traditional, fields.roth];
   const completedFields = requiredFields.filter((field) => field && String(field.value).trim() !== "" && numberValue(field, 1) !== 0).length;
   const intakeProgress = completedFields / requiredFields.length;
@@ -541,21 +487,19 @@ const update = () => {
   output.risaStress.textContent = `Behavioral warning: ${plan.risa.stress}`;
 
   output.portfolioDescription.textContent = `${plan.portfolio.description} Data period: ${SHERPA_DFA_DATA.period.start} to ${SHERPA_DFA_DATA.period.end}, ${SHERPA_DFA_DATA.period.periodicity}.`;
+  const timingNote = yearsToRetirement > 0
+    ? `${yearsToRetirement} years to retirement is used for cash-flow timing, not as an age-only portfolio rule.`
+    : "Retirement timing is used for cash-flow needs, not as an age-only portfolio rule.";
+  const modelMatchesRisa = plan.portfolio.name === plan.risa.portfolio || plan.portfolio.shortName === plan.risa.portfolio;
+  output.planningModelNote.textContent = modelMatchesRisa
+    ? `${plan.risaStyle} auto-fills the ${plan.risa.portfolio} model. ${timingNote}`
+    : `Advisor override: ${plan.portfolio.shortName} selected. ${plan.risaStyle} would auto-fill ${plan.risa.portfolio}. ${timingNote}`;
   output.annReturn.textContent = pct.format(plan.portfolio.annualizedReturn);
   output.annRisk.textContent = pct.format(plan.portfolio.standardDeviation);
   output.bestYear.textContent = `${pct.format(plan.portfolio.highOneYear)} from ${plan.portfolio.highOneYearStart}`;
   output.worstYear.textContent = `${pct.format(plan.portfolio.lowOneYear)} from ${plan.portfolio.lowOneYearStart}`;
   output.rangeSpread.textContent = `${pct.format(plan.portfolio.lowOneYear)} to ${pct.format(plan.portfolio.highOneYear)}`;
   output.rangeBar.style.width = `${clamp((plan.portfolio.highOneYear - plan.portfolio.lowOneYear) * 100, 24, 100)}%`;
-  output.glideStage.textContent = `${glidePath.name} Glide Path`;
-  output.yearsToRetirement.textContent = yearsToRetirement > 0 ? `${yearsToRetirement} years` : "Retired";
-  output.glideEquity.textContent = `${glideEquity}%`;
-  output.axisEquity.textContent = `${axisEquity}%`;
-  output.glideNarrative.textContent = Math.abs(equityGap) <= 8
-    ? `The selected ${plan.portfolio.shortName} model is broadly aligned with the ${glidePath.name.toLowerCase()} benchmark.`
-    : equityGap > 8
-      ? `The selected ${plan.portfolio.shortName} model is ${equityGap.toFixed(0)} percentage points more equity-heavy than the ${glidePath.name.toLowerCase()} benchmark. Confirm this fits the client's RISA baseline and sequence-risk tolerance.`
-      : `The selected ${plan.portfolio.shortName} model is ${Math.abs(equityGap).toFixed(0)} percentage points more conservative than the ${glidePath.name.toLowerCase()} benchmark. Confirm the client is not giving up needed growth.`;
   output.periodReturnGrid.innerHTML = [
     ["1-Year", plan.portfolio.oneYear],
     ["3-Year", plan.portfolio.threeYear],
@@ -605,8 +549,7 @@ const update = () => {
 
   renderProjectionChart(projection, plan);
   renderAllocationChart(plan.portfolio);
-  renderRisaChart(plan);
-  renderGlideChart(plan, glidePath);
+  renderRisaMatrix(plan);
   renderStressChart(plan, requiredCash, requiredMiddle, longTermAssets);
   renderCashFlowChart(cashFlowRows);
 };
@@ -620,8 +563,19 @@ const init = () => {
   });
   fields.portfolioSelect.value = "Growth";
   applyIntakeFromUrl();
+  syncPlanningModelToRisa();
 
-  document.querySelectorAll("input, select").forEach((input) => input.addEventListener("input", update));
+  const risaFields = [fields.marketComfort, fields.incomePreference, fields.downturnBehavior];
+  document.querySelectorAll("input, select").forEach((input) => {
+    if (risaFields.includes(input)) {
+      input.addEventListener("input", () => {
+        syncPlanningModelToRisa();
+        update();
+      });
+    } else {
+      input.addEventListener("input", update);
+    }
+  });
   document.querySelectorAll(".money").forEach((input) => {
     input.addEventListener("blur", () => {
       const value = numberValue(input);

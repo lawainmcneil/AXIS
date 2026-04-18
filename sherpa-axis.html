@@ -42,6 +42,68 @@
     .field { border: 1px solid rgba(23, 32, 31, 0.16); border-radius: 8px; background: white; padding: 0.65rem 0.75rem; width: 100%; }
     .label { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0; color: #4b5563; }
     .panel { border: 1px solid rgba(23, 32, 31, 0.1); border-radius: 8px; background: rgba(255, 255, 255, 0.92); box-shadow: 0 20px 50px rgba(23, 32, 31, 0.08); }
+    .risa-matrix {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 14px;
+      min-height: 360px;
+      padding: 48px 48px;
+    }
+    .risa-matrix::before,
+    .risa-matrix::after {
+      content: "";
+      position: absolute;
+      background: rgba(23, 32, 31, 0.45);
+    }
+    .risa-matrix::before { left: 50%; top: 48px; bottom: 48px; width: 1px; }
+    .risa-matrix::after { top: 50%; left: 48px; right: 48px; height: 1px; }
+    .risa-quadrant {
+      display: grid;
+      min-height: 135px;
+      place-items: center;
+      border-radius: 8px;
+      color: white;
+      font-size: 1.05rem;
+      font-weight: 900;
+      line-height: 1.08;
+      text-align: center;
+      box-shadow: 0 8px 14px rgba(23, 32, 31, 0.18);
+    }
+    .risa-axis-label {
+      position: absolute;
+      color: #17201f;
+      font-size: 0.92rem;
+      font-weight: 900;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+    .risa-axis-label::before {
+      content: "";
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      margin-right: 8px;
+      border-radius: 999px;
+      background: #0f2537;
+      vertical-align: -2px;
+    }
+    .risa-axis-label.top { left: 50%; top: 8px; transform: translateX(-50%); }
+    .risa-axis-label.bottom { left: 50%; bottom: 8px; transform: translateX(-50%); }
+    .risa-axis-label.left { left: 0; top: 50%; transform: translateY(-50%); }
+    .risa-axis-label.right { right: 0; top: 50%; transform: translateY(-50%); }
+    .risa-marker {
+      position: absolute;
+      z-index: 2;
+      width: 18px;
+      height: 18px;
+      border: 3px solid #ffffff;
+      border-radius: 999px;
+      background: #17201f;
+      box-shadow: 0 0 0 4px #C99A2E, 0 10px 20px rgba(23, 32, 31, 0.25);
+      transform: translate(-50%, -50%);
+    }
     canvas { max-height: 340px; }
     @media print {
       .no-print { display: none !important; }
@@ -59,7 +121,6 @@
         <a href="#base">Client Link</a>
         <a href="#risa">RISA Compass</a>
         <a href="#portfolio">Portfolio</a>
-        <a href="#glide">Glide Path</a>
         <a href="#buckets">Buckets</a>
         <a href="#tax">Tax</a>
         <a href="#backtest">Backtest</a>
@@ -103,35 +164,31 @@
           <div class="mt-5">
             <canvas id="projectionChart" aria-label="Portfolio projection chart"></canvas>
           </div>
+          <p class="mt-4 text-sm leading-6 text-rock">The dashboard combines intake data, RISA preference scores, selected model returns, withdrawal need, and projected portfolio path. It is a planning lens, not a final recommendation.</p>
         </div>
       </div>
     </section>
 
     <section id="base" class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <div class="mb-6">
-        <p class="label">Client Intake Link</p>
-        <h2 class="mt-2 text-3xl font-black">Keep intake outside the advisor workspace</h2>
-        <p class="mt-3 max-w-3xl leading-7 text-rock">Send clients to the standalone intake page. When they submit, SHERPA Axis opens with their information already loaded into the analysis.</p>
+        <p class="label">Loaded Household</p>
+        <h2 class="mt-2 text-3xl font-black">Intake summary driving this analysis</h2>
+        <p class="mt-3 max-w-3xl leading-7 text-rock">This is the household profile currently feeding the dashboard, income gap, RISA route, model analysis, buckets, Roth window, RMD estimate, and cash flow view.</p>
       </div>
-      <div class="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
-        <div class="panel p-5">
-          <p class="label">Client Page</p>
-          <h3 class="mt-2 text-2xl font-black">SHERPA Axis Intake</h3>
-          <p class="mt-3 leading-7 text-rock">Use this standalone page for client data gathering. It passes the household, income, spending, asset, and preference details into Axis.</p>
-          <div class="mt-5 flex flex-wrap gap-3">
-            <a class="rounded-lg bg-pine px-5 py-3 text-sm font-black text-white" href="./sherpa-intake.html">Open Intake</a>
-            <a class="rounded-lg border border-summit/20 px-5 py-3 text-sm font-black text-summit" href="./sherpa-intake.html" target="_blank" rel="noreferrer">Shareable Page</a>
-          </div>
-        </div>
-        <div class="panel p-5">
+      <div class="grid gap-5">
+        <div class="panel p-6">
           <p class="label">Loaded Intake Summary</p>
-          <div class="mt-4 grid gap-3 sm:grid-cols-4">
+          <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div class="rounded-lg bg-snow p-4"><p class="text-xs font-bold text-rock">Client</p><p id="loadedClient" class="mt-1 text-xl font-black">Morgan Household</p></div>
             <div class="rounded-lg bg-snow p-4"><p class="text-xs font-bold text-rock">Spending Need</p><p id="spendingBuild" class="mt-1 text-xl font-black">--</p></div>
             <div class="rounded-lg bg-snow p-4"><p class="text-xs font-bold text-rock">Income Floor</p><p id="incomeBuild" class="mt-1 text-xl font-black">--</p></div>
             <div class="rounded-lg bg-snow p-4"><p class="text-xs font-bold text-rock">Investable Assets</p><p id="assetBuild" class="mt-1 text-xl font-black">--</p></div>
           </div>
           <p id="intakeSummary" class="mt-4 text-sm font-bold text-rock">Using the default sample household until a client intake link is submitted.</p>
+          <div class="mt-5 flex flex-wrap gap-3">
+            <a class="rounded-lg bg-pine px-5 py-3 text-sm font-black text-white" href="./sherpa-intake.html">Open Intake</a>
+            <a class="rounded-lg border border-summit/20 px-5 py-3 text-sm font-black text-summit" href="./sherpa-intake.html" target="_blank" rel="noreferrer">Open Shareable Page</a>
+          </div>
         </div>
       </div>
     </section>
@@ -192,7 +249,17 @@
         <div class="mt-5 grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
           <div class="panel p-5">
             <p class="label">RISA Matrix</p>
-            <canvas id="risaChart" aria-label="RISA matrix chart"></canvas>
+            <div class="risa-matrix mt-4" role="img" aria-label="Retirement income style awareness matrix">
+              <span class="risa-axis-label top">Optionality-Oriented</span>
+              <span class="risa-axis-label left">Safety-First</span>
+              <span class="risa-axis-label right">Probability-Based</span>
+              <span class="risa-axis-label bottom">Commitment-Oriented</span>
+              <div class="risa-quadrant" style="background:#84A845">Time<br />Segmentation</div>
+              <div class="risa-quadrant" style="background:#F5C945">Total<br />Return</div>
+              <div class="risa-quadrant" style="background:#F7982F">Income<br />Protection</div>
+              <div class="risa-quadrant" style="background:#BA1734">Risk Wrap</div>
+              <span id="risaMarker" class="risa-marker" aria-hidden="true"></span>
+            </div>
           </div>
           <div class="panel p-5">
             <p class="label">Strategy Alignment</p>
@@ -200,6 +267,10 @@
               <div class="rounded-lg bg-snow p-4"><p class="text-xs font-bold text-rock">Axis Position</p><p id="risaAxis" class="mt-1 font-black">--</p></div>
               <div class="rounded-lg bg-snow p-4"><p class="text-xs font-bold text-rock">PS Score</p><p id="psScore" class="mt-1 font-black">--</p></div>
               <div class="rounded-lg bg-snow p-4"><p class="text-xs font-bold text-rock">OC Score</p><p id="ocScore" class="mt-1 font-black">--</p></div>
+            </div>
+            <div class="mt-4 rounded-lg bg-snow p-4 text-sm leading-6 text-rock">
+              <p><strong class="text-summit">PS Score</strong> reads the safety-first to probability-based side of the client profile. Negative scores lean safety-first; positive scores lean market/probability-based.</p>
+              <p class="mt-2"><strong class="text-summit">OC Score</strong> reads commitment to optionality. Negative scores lean locked-in/committed; positive scores lean flexible/optionality-oriented.</p>
             </div>
             <p id="risaProducts" class="mt-4 leading-7 text-rock">--</p>
             <p id="risaStress" class="mt-3 rounded-lg bg-glacier/60 p-4 text-sm font-bold leading-6 text-summit">--</p>
@@ -214,7 +285,7 @@
           <p class="label">Portfolio Pack Check</p>
           <h2 class="mt-2 text-3xl font-black">Model return analysis</h2>
         </div>
-        <label class="md:w-80"><span class="label">Planning Model</span><select id="portfolioSelect" class="field"></select></label>
+        <label class="md:w-80"><span class="label">Planning Model</span><select id="portfolioSelect" class="field"></select><span id="planningModelNote" class="mt-2 block text-xs font-bold text-rock">Auto-filled from the RISA style until an advisor manually changes it.</span></label>
       </div>
       <div class="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         <div class="panel p-5">
@@ -255,32 +326,6 @@
         <div class="panel p-5">
           <p class="label">Period Returns</p>
           <div id="periodReturnGrid" class="mt-4 grid gap-3 sm:grid-cols-2"></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="glide" class="bg-white/70 py-12">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="mb-6">
-          <p class="label">Target Date Lens</p>
-          <h2 class="mt-2 text-3xl font-black">Glide path comparison</h2>
-          <p class="mt-3 max-w-3xl leading-7 text-rock">Compare the selected Axis model to a time-based target date glide path. This separates the client's behavioral fit from their retirement timeline.</p>
-        </div>
-        <div class="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-          <div class="panel p-5">
-            <p class="label">Glide Path Lens</p>
-            <h3 id="glideStage" class="mt-2 text-2xl font-black">--</h3>
-            <p id="glideNarrative" class="mt-3 leading-7 text-rock">--</p>
-            <div class="mt-4 grid gap-3 sm:grid-cols-3">
-              <div class="rounded-lg bg-snow p-4"><p class="text-xs font-bold text-rock">Years to Retirement</p><p id="yearsToRetirement" class="mt-1 text-xl font-black">--</p></div>
-              <div class="rounded-lg bg-snow p-4"><p class="text-xs font-bold text-rock">Glide Equity</p><p id="glideEquity" class="mt-1 text-xl font-black">--</p></div>
-              <div class="rounded-lg bg-snow p-4"><p class="text-xs font-bold text-rock">Axis Equity</p><p id="axisEquity" class="mt-1 text-xl font-black">--</p></div>
-            </div>
-          </div>
-          <div class="panel p-5">
-            <p class="label">Axis Model vs. TDF Glide Path</p>
-            <canvas id="glideChart" aria-label="Axis model versus target date glide path allocation chart"></canvas>
-          </div>
         </div>
       </div>
     </section>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SHERPA Axis Intake</title>
+  <title>Client Intake | SHERPA Axis</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -100,6 +100,7 @@
           <label><span class="label">Downturn Behavior</span><select name="downturnBehavior" class="field"><option value="-3">Likely to abandon risk</option><option value="-2">Needs strong coaching</option><option value="-1">Needs some coaching</option><option value="1">Can stay invested</option><option value="2" selected>Can rebalance</option><option value="3">Rebalances into weakness</option></select></label>
         </div>
         <input name="portfolioSelect" type="hidden" value="Growth" />
+        <p id="modelPreview" class="mt-4 rounded-lg bg-glacier/60 p-4 text-sm font-bold leading-6 text-summit">Planning Model: Growth. This updates automatically from the income preference profile.</p>
       </section>
 
       <div class="flex flex-wrap gap-3">
@@ -117,7 +118,37 @@
   <script>
     const form = document.querySelector("#intakeForm");
     const copyStatus = document.querySelector("#copyStatus");
+    const modelPreview = document.querySelector("#modelPreview");
     const clean = (value) => String(value || "").replace(/,/g, "").trim();
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    const getPreferenceScores = () => {
+      const marketComfort = Number(form.elements.marketComfort.value);
+      const downturnBehavior = Number(form.elements.downturnBehavior.value);
+      const incomePreference = Number(form.elements.incomePreference.value);
+      return {
+        ps: clamp((marketComfort + downturnBehavior) / 2, -3, 3),
+        oc: clamp(incomePreference, -3, 3)
+      };
+    };
+    const getIncomeStyle = () => {
+      const scores = getPreferenceScores();
+      if (scores.ps >= 0 && scores.oc >= 0) return "Total Return";
+      if (scores.ps < 0 && scores.oc >= 0) return "Time Segmentation";
+      if (scores.ps < 0 && scores.oc < 0) return "Income Protection";
+      return "Risk Wrap";
+    };
+    const modelByStyle = {
+      "Income Protection": "Income",
+      "Time Segmentation": "Balanced",
+      "Total Return": "Growth",
+      "Risk Wrap": "Aggressive"
+    };
+    const syncPlanningModel = () => {
+      const style = getIncomeStyle();
+      const model = modelByStyle[style];
+      form.elements.portfolioSelect.value = model;
+      modelPreview.textContent = `Planning Model: ${model}. ${style} preferences auto-fill the model carried into SHERPA Axis.`;
+    };
     const morganSample = {
       clientName: "Morgan Household",
       spouseName: "Alex and Jordan Morgan",
@@ -152,10 +183,12 @@
         const field = form.elements[name];
         if (field) field.value = value;
       });
+      syncPlanningModel();
       copyStatus.textContent = "Morgan Household sample is loaded.";
     };
 
     const buildAxisUrl = () => {
+      syncPlanningModel();
       const params = new URLSearchParams();
       new FormData(form).forEach((value, key) => {
         params.set(key, clean(value));
@@ -170,6 +203,10 @@
       });
     });
 
+    [form.elements.marketComfort, form.elements.incomePreference, form.elements.downturnBehavior].forEach((field) => {
+      field.addEventListener("input", syncPlanningModel);
+    });
+
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       window.location.href = buildAxisUrl();
@@ -182,6 +219,7 @@
     });
 
     document.querySelector("#loadSample").addEventListener("click", loadSample);
+    syncPlanningModel();
   </script>
 </body>
 </html>
